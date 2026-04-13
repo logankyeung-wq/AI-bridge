@@ -1,60 +1,80 @@
-echo "[AI]: I have analyzed the system console output. The error 'OSError: [Errno 98] Address already in use' occurred because a previous instance of the web server was still bound to port 8000, preventing a new one from starting."
-echo "[AI]: I will now terminate the conflicting process, recreate the visualization files to ensure they are correct, and restart the server."
+echo "[AI]: I have analyzed the system console output. The command 'fuser' failed because it is not installed in this environment. This prevented me from clearing the previous web server process that was occupying port 8000."
+echo "[AI]: I will now use 'lsof' to find the process ID and terminate it, ensuring port 8000 is available."
+echo "[AI]: I will then recreate the 'index.html' file with a robust Heap Sort visualization and restart the server."
 
-# Kill any process currently using port 8000
-fuser -k 8000/tcp || pkill -f "python3 -m http.server" || true
+# Kill process on port 8000 using lsof if fuser is missing
+PID=$(lsof -t -i:8000)
+if [ -z "$PID" ]; then
+    echo "[AI]: Port 8000 is already free or no process was found using lsof."
+else
+    echo "[AI]: Terminating process $PID on port 8000..."
+    kill -9 $PID
+fi
 
-echo "[AI]: Creating the Heap Sort visualizer web interface (index.html)..."
-
+# Create the visualizer file
+echo "[AI]: Creating the Heap Sort visualizer web interface..."
 cat << 'EOF' > index.html
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Heap Sort Visualizer</title>
     <style>
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; display: flex; flex-direction: column; align-items: center; background-color: #2c3e50; color: white; }
-        #container { display: flex; align-items: flex-end; height: 300px; gap: 4px; padding: 20px; border-bottom: 2px solid #ecf0f1; }
-        .bar { width: 30px; background-color: #3498db; transition: height 0.1s, background-color 0.1s; }
-        .bar.active { background-color: #e74c3c; }
-        .bar.heap { background-color: #f1c40f; }
-        .bar.sorted { background-color: #2ecc71; }
+        body { font-family: sans-serif; display: flex; flex-direction: column; align-items: center; background: #121212; color: white; }
+        #visualizer { display: flex; align-items: flex-end; height: 300px; gap: 2px; margin-top: 50px; border-bottom: 2px solid #444; padding: 10px; }
+        .bar { background-color: #3498db; transition: height 0.1s, background-color 0.1s; width: 15px; }
+        .active { background-color: #e74c3c !important; }
+        .sorted { background-color: #2ecc71 !important; }
+        .heap { background-color: #f1c40f !important; }
         .controls { margin-top: 20px; }
-        button { padding: 10px 20px; font-size: 16px; cursor: pointer; background-color: #9b59b6; border: none; color: white; border-radius: 5px; }
-        button:hover { background-color: #8e44ad; }
-        h1 { margin-bottom: 10px; }
+        button { padding: 10px 20px; font-size: 16px; cursor: pointer; background: #3498db; color: white; border: none; border-radius: 4px; }
+        button:hover { background: #2980b9; }
     </style>
 </head>
 <body>
     <h1>Heap Sort Visualizer</h1>
-    <div id="container"></div>
+    <div id="visualizer"></div>
     <div class="controls">
-        <button onclick="startSort()">Start Heap Sort</button>
+        <button onclick="startSort()">Run Heap Sort</button>
         <button onclick="resetArray()">Generate New Array</button>
     </div>
+    <p id="status">Click 'Run Heap Sort' to begin.</p>
 
     <script>
-        const container = document.getElementById('container');
         let array = [];
-        const size = 15;
+        const container = document.getElementById('visualizer');
+        const status = document.getElementById('status');
+        const numElements = 30;
 
         function resetArray() {
             array = [];
             container.innerHTML = '';
-            for (let i = 0; i < size; i++) {
-                const val = Math.floor(Math.random() * 250) + 10;
-                array.push(val);
+            for (let i = 0; i < numElements; i++) {
+                array.push(Math.floor(Math.random() * 250) + 10);
                 const bar = document.createElement('div');
-                bar.classList.add('bar');
-                bar.style.height = `${val}px`;
+                bar.className = 'bar';
+                bar.style.height = `${array[i]}px`;
                 bar.id = `bar-${i}`;
                 container.appendChild(bar);
             }
+            status.innerText = "Array generated.";
         }
 
-        async function sleep(ms) {
-            return new Promise(resolve => setTimeout(resolve, ms));
+        async function swap(i, j) {
+            let temp = array[i];
+            array[i] = array[j];
+            array[j] = temp;
+            
+            const barI = document.getElementById(`bar-${i}`);
+            const barJ = document.getElementById(`bar-${j}`);
+            barI.style.height = `${array[i]}px`;
+            barJ.style.height = `${array[j]}px`;
+            
+            barI.classList.add('active');
+            barJ.classList.add('active');
+            await new Promise(resolve => setTimeout(resolve, 50));
+            barI.classList.remove('active');
+            barJ.classList.remove('active');
         }
 
         async function heapify(n, i) {
@@ -62,57 +82,29 @@ cat << 'EOF' > index.html
             let left = 2 * i + 1;
             let right = 2 * i + 2;
 
-            updateClass(i, 'active');
-            if (left < n) updateClass(left, 'heap');
-            if (right < n) updateClass(right, 'heap');
-            await sleep(200);
-
             if (left < n && array[left] > array[largest]) largest = left;
             if (right < n && array[right] > array[largest]) largest = right;
 
             if (largest !== i) {
-                [array[i], array[largest]] = [array[largest], array[i]];
-                render();
-                await sleep(200);
+                await swap(i, largest);
                 await heapify(n, largest);
             }
-            
-            updateClass(i, 'bar');
-            if (left < n) updateClass(left, 'bar');
-            if (right < n) updateClass(right, 'bar');
         }
 
         async function startSort() {
-            let n = array.length;
-
-            // Build max heap
-            for (let i = Math.floor(n / 2) - 1; i >= 0; i--) {
-                await heapify(n, i);
+            status.innerText = "Building Max Heap...";
+            for (let i = Math.floor(array.length / 2) - 1; i >= 0; i--) {
+                await heapify(array.length, i);
             }
 
-            // Extract elements from heap
-            for (let i = n - 1; i > 0; i--) {
-                [array[0], array[i]] = [array[i], array[0]];
-                render();
-                updateClass(i, 'sorted');
-                await sleep(200);
+            status.innerText = "Extracting elements from heap...";
+            for (let i = array.length - 1; i > 0; i--) {
+                await swap(0, i);
+                document.getElementById(`bar-${i}`).classList.add('sorted');
                 await heapify(i, 0);
             }
-            updateClass(0, 'sorted');
-        }
-
-        function render() {
-            for (let i = 0; i < array.length; i++) {
-                const bar = document.getElementById(`bar-${i}`);
-                bar.style.height = `${array[i]}px`;
-            }
-        }
-
-        function updateClass(idx, cls) {
-            const bar = document.getElementById(`bar-${idx}`);
-            if (bar) {
-                bar.className = 'bar ' + cls;
-            }
+            document.getElementById(`bar-0`).classList.add('sorted');
+            status.innerText = "Sorting Complete!";
         }
 
         resetArray();
@@ -121,10 +113,41 @@ cat << 'EOF' > index.html
 </html>
 EOF
 
-echo "[AI]: index.html created. Starting the Python web server in the background..."
+echo "[AI]: index.html has been updated. Starting the web server..."
 
-# Start the server and redirect output to suppress logs in the main console
-python3 -m http.server 8000 > /dev/null 2>&1 &
+# Start the python server in the background
+nohup python3 -m http.server 8000 > /dev/null 2>&1 &
 
-echo "[AI]: Success. The Heap Sort visualizer is now running on port 8000."
-echo "[AI]: Please open the 'Webview' or 'Preview' tab in Replit to interact with the visualizer."
+echo "[AI]: The visualizer is now running. Please check the Replit Webview or Preview tab."
+echo "[AI]: If you still see a blank page, ensure the 'Webview' is pointing to port 8000."
+
+# Provide a reference CLI script as requested previously
+cat << 'EOF' > heapsort.py
+def heapify(arr, n, i):
+    largest = i
+    l = 2 * i + 1
+    r = 2 * i + 2
+    if l < n and arr[i] < arr[l]:
+        largest = l
+    if r < n and arr[largest] < arr[r]:
+        largest = r
+    if largest != i:
+        arr[i], arr[largest] = arr[largest], arr[i]
+        heapify(arr, n, largest)
+
+def heap_sort(arr):
+    n = len(arr)
+    for i in range(n // 2 - 1, -1, -1):
+        heapify(arr, n, i)
+    for i in range(n - 1, 0, -1):
+        arr[i], arr[0] = arr[0], arr[i]
+        heapify(arr, i, 0)
+
+if __name__ == "__main__":
+    sample = [90, 12, 46, 50, 11, 92, 19, 42, 54, 71]
+    print(f"Original: {sample}")
+    heap_sort(sample)
+    print(f"Sorted:   {sample}")
+EOF
+
+echo "[AI]: Python CLI reference script also created as 'heapsort.py'."

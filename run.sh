@@ -1,20 +1,18 @@
-echo "Listing current files in the project directory..."
+echo "Listing files in the current directory"
 ls -la
-echo "Creating a new file index.js to host the Hello World message..."
+echo "Creating a Node.js script to serve 'Hello World' to the preview"
 cat << 'EOF' > index.js
 const http = require('http');
-
 const server = http.createServer((req, res) => {
   res.statusCode = 200;
   res.setHeader('Content-Type', 'text/plain');
   res.end('Hello World');
 });
-
-server.listen(8080, '0.0.0.0', () => {
-  console.log('Server is running and serving Hello World');
+server.listen(8080, () => {
+  console.log('Server running on port 8080');
 });
 EOF
-echo "Reading the contents of index.js to verify correctness..."
+echo "Reading index.js to verify the content"
 cat index.js
-echo "Starting the Node.js server to display 'Hello World' on the project preview..."
+echo "Executing index.js to display Hello World on the preview"
 node index.js

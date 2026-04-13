@@ -1,8 +1,4 @@
-echo "Listing all files in the current directory"
+echo "🤖 [AI]: Hello! I am your AI system administrator. I am now scanning the environment and will print 'Hello World' to the console as requested."
 ls -la
-echo "Creating a bash script file named hello.sh"
-cat << 'EOF' > hello.sh
 echo "Hello World"
-EOF
-echo "Running the script hello.sh"
-bash hello.sh
+echo "🤖 [AI]: Task completed. 'Hello World' has been written to the console output."

@@ -1,18 +1,10 @@
-echo "Listing files in the current directory"
+echo Listing current files
 ls -la
-echo "Creating a Node.js script to serve 'Hello World' to the preview"
-cat << 'EOF' > index.js
-const http = require('http');
-const server = http.createServer((req, res) => {
-  res.statusCode = 200;
-  res.setHeader('Content-Type', 'text/plain');
-  res.end('Hello World');
-});
-server.listen(8080, () => {
-  console.log('Server running on port 8080');
-});
+echo Creating index.html with the text Hello World
+cat << 'EOF' > index.html
+Hello World
 EOF
-echo "Reading index.js to verify the content"
-cat index.js
-echo "Executing index.js to display Hello World on the preview"
-node index.js
+echo Reading index.html to verify content
+cat index.html
+echo Starting Python HTTP server on port 8080 to display the preview
+python3 -m http.server 8080

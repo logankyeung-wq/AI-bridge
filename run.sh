@@ -1,129 +1,122 @@
-echo "[AI]: Starting the exploration phase. I will list the files in the current directory to understand the project structure."
-ls -la
+echo "Starting system audit and heapsort implementation..."
 
-echo "[AI]: Checking for any existing source files or documentation to understand the project context."
-# We look for common files, but we won't overwrite critical ones.
-for file in README.md main.cpp requirements.txt; do
-    if [ -f "$file" ]; then
-        echo "[AI]: Reading $file..."
-        cat "$file"
-    fi
+# 1. Read and list all files in the current directory to understand the environment
+echo "Listing all files in the directory:"
+ls -laR
+
+# 2. Reading contents of relevant files to "Continue the heapsort"
+# We look for Python or Javascript files that might contain the logic.
+for file in $(ls | grep -E '\.(py|js|html)$'); do
+    echo "Reading $file..."
+    cat "$file"
 done
 
-echo "[AI]: I have analyzed the environment. Now, I will create a C++ implementation of Heap Sort."
-echo "[AI]: This implementation will handle 256 items and include a customizable delay to simulate sorting speed."
+# 3. Implementing the Heap Sort logic
+# This implementation includes:
+# - Customizable speed via SORT_SPEED variable.
+# - Array of 256 items (1 to 256).
+# - Error handling and verification logic.
+# - Random shuffle to demonstrate the sorting process.
 
-cat << 'EOF' > heapsort.cpp
-#include <iostream>
-#include <vector>
-#include <algorithm>
-#include <chrono>
-#include <thread>
-#include <random>
-#include <iomanip>
+cat << 'EOF' > heapsort.py
+import time
+import random
+import sys
 
-/**
- * Heap Sort with visualization and speed control.
- * Author: AI Sysadmin
- */
+# === CONFIGURATION ===
+# Lower delay = faster sort. 
+# 0.001 is quite fast, 0.01 is visible.
+SORT_SPEED = 0.002 
+ARRAY_SIZE = 256
+# =====================
 
-void printArray(const std::vector<int>& arr) {
-    for (size_t i = 0; i < arr.size(); ++i) {
-        // Simple visualization: print values. 
-        // For 256 items, we'll print in a grid or small blocks to keep output readable.
-        std::cout << std::setw(3) << arr[i] << ( (i + 1) % 16 == 0 ? "\n" : " ");
-    }
-    std::cout << std::endl;
-}
+def heapify(arr, n, i):
+    """
+    To heapify a subtree rooted with node i which is an index in arr[].
+    n is size of heap.
+    """
+    largest = i 
+    l = 2 * i + 1     # left = 2*i + 1
+    r = 2 * i + 2     # right = 2*i + 2
 
-void heapify(std::vector<int>& arr, int n, int i, int delayMs) {
-    int largest = i;
-    int left = 2 * i + 1;
-    int right = 2 * i + 2;
+    # Check if left child of root exists and is greater than root
+    if l < n and arr[largest] < arr[l]:
+        largest = l
 
-    if (left < n && arr[left] > arr[largest])
-        largest = left;
+    # Check if right child of root exists and is greater than root
+    if r < n and arr[largest] < arr[r]:
+        largest = r
 
-    if (right < n && arr[right] > arr[largest])
-        largest = right;
-
-    if (largest != i) {
-        std::swap(arr[i], arr[largest]);
+    # Change root, if needed
+    if largest != i:
+        arr[i], arr[largest] = arr[largest], arr[i] # swap
         
-        if (delayMs > 0) {
-            std::this_thread::sleep_for(std::chrono::milliseconds(delayMs));
-            // Optional: Uncomment the next line to see every swap
-            // std::cout << "Swapping..." << std::endl;
-        }
+        # Customizable speed delay
+        if SORT_SPEED > 0:
+            time.sleep(SORT_SPEED)
+            
+        # Heapify the root.
+        heapify(arr, n, largest)
 
-        heapify(arr, n, largest, delayMs);
-    }
-}
+def heap_sort(arr):
+    n = len(arr)
 
-void heapSort(std::vector<int>& arr, int delayMs) {
-    int n = arr.size();
+    # Build a maxheap.
+    # Since last parent will be at ((n//2)-1) we can start from there.
+    for i in range(n // 2 - 1, -1, -1):
+        heapify(arr, n, i)
 
-    // Build heap
-    for (int i = n / 2 - 1; i >= 0; i--)
-        heapify(arr, n, i, delayMs);
+    # One by one extract elements
+    for i in range(n - 1, 0, -1):
+        arr[i], arr[0] = arr[0], arr[i] # swap
+        
+        if SORT_SPEED > 0:
+            time.sleep(SORT_SPEED)
+            
+        heapify(arr, i, 0)
 
-    // Extract elements from heap
-    for (int i = n - 1; i > 0; i--) {
-        std::swap(arr[0], arr[i]);
-        if (delayMs > 0) {
-             std::this_thread::sleep_for(std::chrono::milliseconds(delayMs));
-        }
-        heapify(arr, i, 0, delayMs);
-    }
-}
-
-int main(int argc, char* argv[]) {
-    int delay = 10; // Default delay in milliseconds
-    if (argc > 1) {
-        delay = std::atoi(argv[1]);
-    }
-
-    const int SIZE = 256;
-    std::vector<int> data(SIZE);
-
-    // Initialize data
-    for (int i = 0; i < SIZE; ++i) data[i] = i + 1;
-
-    // Shuffle data
-    std::random_device rd;
-    std::mt19937 g(rd());
-    std::shuffle(data.begin(), data.end(), g);
-
-    std::cout << "[AI]: Initial Unsorted Array (first 256 elements):" << std::endl;
-    printArray(data);
-
-    std::cout << "[AI]: Starting Heap Sort with delay: " << delay << "ms per step..." << std::endl;
-    auto start = std::chrono::high_resolution_clock::now();
+def main():
+    print(f"Initializing array of {ARRAY_SIZE} items (1 to {ARRAY_SIZE})...")
     
-    heapSort(data, delay);
+    # Generate array 1 to 256
+    data = list(range(1, ARRAY_SIZE + 1))
     
-    auto end = std::chrono::high_resolution_clock::now();
-    std::chrono::duration<double> diff = end - start;
+    # Shuffle the array to prepare for sorting
+    random.shuffle(data)
+    
+    print("Initial state (first 20 elements):", data[:20], "...")
+    print(f"Sorting at speed delay: {SORT_SPEED}s per swap operation...")
+    
+    start_time = time.time()
+    try:
+        heap_sort(data)
+        end_time = time.time()
+        
+        print("\nSort Complete!")
+        print(f"Time elapsed: {end_time - start_time:.4f} seconds")
+        
+        # Final check for errors
+        expected = list(range(1, ARRAY_SIZE + 1))
+        if data == expected:
+            print("VERIFICATION SUCCESS: The array is correctly sorted from 1 to 256.")
+        else:
+            print("VERIFICATION FAILURE: The array is NOT correctly sorted.")
+            # Finding the first discrepancy
+            for idx, (a, b) in enumerate(zip(data, expected)):
+                if a != b:
+                    print(f"First error at index {idx}: Expected {b}, got {a}")
+                    break
+                    
+    except Exception as e:
+        print(f"An error occurred during sorting: {e}")
+        sys.exit(1)
 
-    std::cout << "[AI]: Sorting complete in " << diff.count() << " seconds." << std::endl;
-    std::cout << "[AI]: Sorted Array:" << std::endl;
-    printArray(data);
-
-    return 0;
-}
+if __name__ == "__main__":
+    main()
 EOF
 
-echo "[AI]: C++ file 'heapsort.cpp' created. Now compiling..."
+# 4. Running the implementation to verify functionality
+echo "Executing heapsort.py..."
+python3 heapsort.py
 
-g++ -O3 heapsort.cpp -o heapsort
-
-if [ $? -eq 0 ]; then
-    echo "[AI]: Compilation successful. Running the heapsort with a 5ms delay per swap/heapify step..."
-    # We run it with a small delay so it doesn't take forever but demonstrates the speed control.
-    ./heapsort 5
-else
-    echo "[AI]: Compilation failed. Checking for errors..."
-    # If it failed, we would debug here, but the code provided is standard C++11.
-fi
-
-echo "[AI]: Task complete. I have read the project structure, created a customizable Heap Sort, and verified its execution."
+echo "Task completed. I have read the files, implemented a robust Heapsort with 256 items (1-256), added customizable speed, and included a verification step to ensure no errors occurred during the sort."
